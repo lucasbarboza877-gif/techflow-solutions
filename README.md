@@ -15,3 +15,5 @@ O projeto conta com um pipeline de *Integração Contínua (CI)* configurado via
 
 ## ⚠️ 4. Gestão de Mudanças (Mudança de Escopo)
 *Justificativa:* Durante o ciclo de validação, a startup de logística identificou a necessidade de filtrar as ordens de serviço por impacto operacional. Para mitigar isso, foi aprovada uma *mudança de escopo* para incluir um campo obrigatório de *"Prioridade"* (Alta, Média, Baixa) na criação de cada tarefa.
+
+ 
