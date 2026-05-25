@@ -30,3 +30,5 @@ def inicializar_banco():
     conn.commit()
     conn.close()
     print("Banco de dados inicializado com sucesso!")
+
+ 
