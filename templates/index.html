@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="TaskFlow – Sistema de Gerenciamento de Tarefas Ágil baseado em metodologia Kanban">
+    <title>TaskFlow – Gerenciamento Ágil de Tarefas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep:    #060b18;
+            --bg-card:    rgba(255,255,255,0.04);
+            --bg-card-hov:rgba(255,255,255,0.08);
+            --border:     rgba(255,255,255,0.08);
+            --border-hov: rgba(99,179,237,0.4);
+            --blue:       #3b82f6;
+            --blue-dark:  #1d4ed8;
+            --teal:       #2dd4bf;
+            --amber:      #f59e0b;
+            --green:      #10b981;
+            --red:        #ef4444;
+            --purple:     #8b5cf6;
+            --text:       #f1f5f9;
+            --text-muted: #64748b;
+            --text-soft:  #94a3b8;
+            --radius:     14px;
+            --radius-sm:  8px;
+            --shadow:     0 8px 32px rgba(0,0,0,0.4);
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── Animated background ── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 80% 50% at 20% 20%, rgba(59,130,246,0.07) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 80% 80%, rgba(45,212,191,0.06) 0%, transparent 60%),
+                radial-gradient(ellipse 50% 30% at 50% 50%, rgba(139,92,246,0.04) 0%, transparent 60%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* ── Header ── */
+        header {
+            position: relative;
+            z-index: 10;
+            padding: 20px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(12px);
+            background: rgba(6,11,24,0.8);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, var(--blue), var(--teal));
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 15px rgba(59,130,246,0.4);
+        }
+
+        .logo h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #e2e8f0, var(--teal));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo p { color: var(--text-muted); font-size: 0.75rem; margin-top: 1px; }
+
+        .header-badge {
+            background: rgba(59,130,246,0.12);
+            border: 1px solid rgba(59,130,246,0.25);
+            color: #93c5fd;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        /* ── Layout ── */
+        .main-wrapper {
+            position: relative;
+            z-index: 1;
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+
+        /* ── Stats Row ── */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 22px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            backdrop-filter: blur(8px);
+            transition: border-color .2s, transform .2s;
+        }
+
+        .stat-card:hover { border-color: var(--border-hov); transform: translateY(-2px); }
+
+        .stat-icon {
+            width: 44px; height: 44px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .stat-icon.blue   { background: rgba(59,130,246,0.15); }
+        .stat-icon.amber  { background: rgba(245,158,11,0.15); }
+        .stat-icon.green  { background: rgba(16,185,129,0.15); }
+        .stat-icon.purple { background: rgba(139,92,246,0.15); }
+
+        .stat-info p { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 2px; }
+        .stat-num { font-size: 1.9rem; font-weight: 800; line-height: 1; }
+        .stat-num.blue   { color: var(--blue); }
+        .stat-num.amber  { color: var(--amber); }
+        .stat-num.green  { color: var(--green); }
+        .stat-num.purple { color: var(--purple); }
+
+        /* ── Form card ── */
+        .form-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px 28px;
+            margin-bottom: 28px;
+            backdrop-filter: blur(8px);
+        }
+
+        .section-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 3px; height: 14px;
+            background: linear-gradient(var(--blue), var(--teal));
+            border-radius: 2px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 12px;
+            align-items: end;
+        }
+
+        .field { display: flex; flex-direction: column; gap: 6px; }
+        .field label { font-size: 0.75rem; color: var(--text-soft); font-weight: 500; }
+
+        input, select, textarea {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 11px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            font-family: 'Inter', sans-serif;
+            width: 100%;
+            transition: border-color .2s, box-shadow .2s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: rgba(59,130,246,0.5);
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+        }
+
+        select option { background: #1e293b; }
+
+        /* ── Buttons ── */
+        .btn {
+            padding: 11px 22px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            transition: all .2s;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--blue), #1d4ed8);
+            color: white;
+            box-shadow: 0 4px 15px rgba(59,130,246,0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(59,130,246,0.45);
+        }
+
+        .btn-sm {
+            padding: 5px 12px;
+            font-size: 0.75rem;
+        }
+
+        .btn-ghost {
+            background: rgba(255,255,255,0.06);
+            color: var(--text-soft);
+            border: 1px solid var(--border);
+        }
+
+        .btn-ghost:hover { background: rgba(255,255,255,0.10); color: var(--text); }
+
+        .btn-danger {
+            background: rgba(239,68,68,0.12);
+            color: #fca5a5;
+            border: 1px solid rgba(239,68,68,0.2);
+        }
+
+        .btn-danger:hover { background: rgba(239,68,68,0.22); }
+
+        .btn-move {
+            background: rgba(45,212,191,0.1);
+            color: var(--teal);
+            border: 1px solid rgba(45,212,191,0.2);
+        }
+
+        .btn-move:hover { background: rgba(45,212,191,0.2); }
+
+        /* ── Filter bar ── */
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .filter-chip {
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            cursor: pointer;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            transition: all .2s;
+        }
+
+        .filter-chip:hover { border-color: var(--border-hov); color: var(--text); }
+        .filter-chip.active { background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.5); color: #93c5fd; }
+
+        /* ── Kanban board ── */
+        .kanban { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+
+        .column {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            backdrop-filter: blur(8px);
+        }
+
+        .column-header {
+            padding: 16px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .column-header-left { display: flex; align-items: center; gap: 10px; }
+
+        .col-indicator { width: 8px; height: 8px; border-radius: 50%; }
+        .col-indicator.blue   { background: var(--blue); box-shadow: 0 0 8px var(--blue); }
+        .col-indicator.amber  { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+        .col-indicator.green  { background: var(--green); box-shadow: 0 0 8px var(--green); }
+
+        .col-title { font-weight: 600; font-size: 0.9rem; }
+
+        .col-count {
+            background: rgba(255,255,255,0.08);
+            color: var(--text-muted);
+            padding: 2px 9px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .column-body { padding: 14px; min-height: 200px; }
+
+        .empty-col {
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 40px 16px;
+            opacity: .35;
+            gap: 8px;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+
+        .empty-col span { font-size: 1.8rem; }
+
+        /* ── Task Card ── */
+        .task-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-left: 3px solid transparent;
+            border-radius: 10px;
+            padding: 14px 14px 12px;
+            margin-bottom: 10px;
+            transition: transform .15s, border-color .2s, box-shadow .2s;
+            animation: slideIn .25s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .task-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--border-hov);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .task-card.alta   { border-left-color: var(--red); }
+        .task-card.media  { border-left-color: var(--amber); }
+        .task-card.baixa  { border-left-color: var(--green); }
+
+        .task-title { font-weight: 600; font-size: 0.875rem; margin-bottom: 5px; line-height: 1.4; }
+        .task-desc  { color: var(--text-muted); font-size: 0.78rem; margin-bottom: 10px; line-height: 1.5; }
+
+        .task-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .prio-badge {
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 3px 9px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        .prio-alta  { background: rgba(239,68,68,0.15);  color: #fca5a5; border: 1px solid rgba(239,68,68,0.25); }
+        .prio-media { background: rgba(245,158,11,0.15); color: #fcd34d; border: 1px solid rgba(245,158,11,0.25); }
+        .prio-baixa { background: rgba(16,185,129,0.15); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.25); }
+
+        .task-actions { display: flex; gap: 6px; }
+
+        /* ── Toast ── */
+        #toast {
+            position: fixed; bottom: 28px; right: 28px;
+            background: rgba(16,185,129,0.9);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transform: translateY(80px);
+            opacity: 0;
+            transition: all .3s cubic-bezier(.34,1.56,.64,1);
+            z-index: 9999;
+            backdrop-filter: blur(8px);
+        }
+
+        #toast.show { transform: translateY(0); opacity: 1; }
+        #toast.error { background: rgba(239,68,68,0.9); }
+
+        /* ── Loading spinner ── */
+        .spinner {
+            width: 18px; height: 18px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin .6s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Progress bar ── */
+        .progress-wrap { margin-bottom: 28px; }
+        .progress-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .progress-label { font-size: 0.78rem; color: var(--text-muted); }
+        .progress-pct { font-size: 0.78rem; font-weight: 600; color: var(--teal); }
+        .progress-bar-bg {
+            height: 6px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--blue), var(--teal));
+            border-radius: 3px;
+            transition: width .6s cubic-bezier(.4,0,.2,1);
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 900px) {
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .kanban    { grid-template-columns: 1fr; }
+            .form-grid { grid-template-columns: 1fr 1fr; }
+            header { padding: 16px 20px; }
+        }
+
+        @media (max-width: 600px) {
+            .stats-row { grid-template-columns: 1fr 1fr; }
+            .form-grid { grid-template-columns: 1fr; }
+            .main-wrapper { padding: 20px 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+    <div class="logo">
+        <div class="logo-icon">📋</div>
+        <div>
+            <h1>TaskFlow</h1>
+            <p>TechFlow Solutions · Sistema Ágil de Tarefas</p>
+        </div>
+    </div>
+    <div class="header-badge">Engenharia de Software · 3° Semestre</div>
+</header>
+
+<div class="main-wrapper">
+
+    <!-- Stats -->
+    <div class="stats-row" id="stats-row">
+        <div class="stat-card">
+            <div class="stat-icon blue">📋</div>
+            <div class="stat-info">
+                <p>Total de Tarefas</p>
+                <div class="stat-num blue" id="stat-total">0</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon amber">🔄</div>
+            <div class="stat-info">
+                <p>Em Progresso</p>
+                <div class="stat-num amber" id="stat-prog">0</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">✅</div>
+            <div class="stat-info">
+                <p>Concluídas</p>
+                <div class="stat-num green" id="stat-done">0</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon purple">🔴</div>
+            <div class="stat-info">
+                <p>Alta Prioridade</p>
+                <div class="stat-num purple" id="stat-alta">0</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-wrap">
+        <div class="progress-header">
+            <span class="progress-label">Progresso do Projeto</span>
+            <span class="progress-pct" id="prog-pct">0%</span>
+        </div>
+        <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="prog-bar" style="width:0%"></div>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="form-card">
+        <div class="section-title">Nova Tarefa</div>
+        <div class="form-grid">
+            <div class="field">
+                <label>Título *</label>
+                <input type="text" id="input-titulo" placeholder="Ex: Implementar autenticação de usuários" />
+            </div>
+            <div class="field">
+                <label>Status</label>
+                <select id="input-status">
+                    <option value="a_fazer">📌 A Fazer</option>
+                    <option value="em_progresso">🔄 Em Progresso</option>
+                    <option value="concluido">✅ Concluído</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Prioridade</label>
+                <select id="input-prio">
+                    <option value="alta">🔴 Alta</option>
+                    <option value="media" selected>🟡 Média</option>
+                    <option value="baixa">🟢 Baixa</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" id="btn-criar" onclick="criarTarefa()">
+                ＋ Criar
+            </button>
+        </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+        <button class="filter-chip active" id="chip-todos" onclick="setFiltro('todos')">Todos</button>
+        <button class="filter-chip" id="chip-alta"  onclick="setFiltro('alta')">🔴 Alta</button>
+        <button class="filter-chip" id="chip-media" onclick="setFiltro('media')">🟡 Média</button>
+        <button class="filter-chip" id="chip-baixa" onclick="setFiltro('baixa')">🟢 Baixa</button>
+        <button class="filter-chip" id="chip-a_fazer"     onclick="setFiltroStatus('a_fazer')">📌 A Fazer</button>
+        <button class="filter-chip" id="chip-em_progresso" onclick="setFiltroStatus('em_progresso')">🔄 Em Progresso</button>
+        <button class="filter-chip" id="chip-concluido"   onclick="setFiltroStatus('concluido')">✅ Concluídas</button>
+    </div>
+
+    <!-- Kanban -->
+    <div class="kanban">
+        <div class="column">
+            <div class="column-header">
+                <div class="column-header-left">
+                    <div class="col-indicator blue"></div>
+                    <span class="col-title">A Fazer</span>
+                </div>
+                <span class="col-count" id="cnt-a_fazer">0</span>
+            </div>
+            <div class="column-body" id="col-a_fazer"></div>
+        </div>
+
+        <div class="column">
+            <div class="column-header">
+                <div class="column-header-left">
+                    <div class="col-indicator amber"></div>
+                    <span class="col-title">Em Progresso</span>
+                </div>
+                <span class="col-count" id="cnt-em_progresso">0</span>
+            </div>
+            <div class="column-body" id="col-em_progresso"></div>
+        </div>
+
+        <div class="column">
+            <div class="column-header">
+                <div class="column-header-left">
+                    <div class="col-indicator green"></div>
+                    <span class="col-title">Concluído</span>
+                </div>
+                <span class="col-count" id="cnt-concluido">0</span>
+            </div>
+            <div class="column-body" id="col-concluido"></div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Toast notification -->
+<div id="toast"></div>
+
+<script>
+    let todasTarefas = [];
+    let filtroAtivo = { tipo: 'prio', valor: 'todos' };
+
+    // ── API calls ──────────────────────────────────────────
+    async function api(method, path, body = null) {
+        const opts = { method, headers: { 'Content-Type': 'application/json' } };
+        if (body) opts.body = JSON.stringify(body);
+        const r = await fetch(`/api${path}`, opts);
+        return r.json().then(d => ({ ok: r.ok, status: r.status, data: d }));
+    }
+
+    async function carregarTarefas() {
+        const { data } = await api('GET', '/tarefas');
+        todasTarefas = data.tarefas || [];
+        atualizarEstatisticas();
+        renderizarKanban(filtrar(todasTarefas));
+    }
+
+    async function carregarEstatisticas() {
+        const { data } = await api('GET', '/estatisticas');
+        if (!data) return;
+        animateNum('stat-total', data.total);
+        animateNum('stat-prog',  data.por_status.em_progresso);
+        animateNum('stat-done',  data.por_status.concluido);
+        animateNum('stat-alta',  data.por_prioridade.alta);
+
+        const pct = data.total > 0
+            ? Math.round((data.por_status.concluido / data.total) * 100)
+            : 0;
+        document.getElementById('prog-pct').textContent = pct + '%';
+        document.getElementById('prog-bar').style.width = pct + '%';
+    }
+
+    function atualizarEstatisticas() {
+        carregarEstatisticas();
+    }
+
+    // ── CRUD ──────────────────────────────────────────────
+    async function criarTarefa() {
+        const titulo = document.getElementById('input-titulo').value.trim();
+        if (!titulo) { showToast('Informe o título da tarefa!', true); return; }
+
+        const btn = document.getElementById('btn-criar');
+        btn.innerHTML = '<span class="spinner"></span>';
+        btn.disabled = true;
+
+        const { ok, data } = await api('POST', '/tarefas', {
+            titulo,
+            status:    document.getElementById('input-status').value,
+            prioridade: document.getElementById('input-prio').value,
+        });
+
+        btn.innerHTML = '＋ Criar';
+        btn.disabled = false;
+
+        if (ok) {
+            document.getElementById('input-titulo').value = '';
+            showToast('✅ Tarefa criada com sucesso!');
+            carregarTarefas();
+        } else {
+            showToast(data.erro || 'Erro ao criar tarefa', true);
+        }
+    }
+
+    async function deletar(id) {
+        if (!confirm('Deseja remover essa tarefa?')) return;
+        const { ok } = await api('DELETE', `/tarefas/${id}`);
+        if (ok) { showToast('🗑 Tarefa removida'); carregarTarefas(); }
+    }
+
+    async function mover(id, statusAtual) {
+        const ordem = ['a_fazer', 'em_progresso', 'concluido'];
+        const proximo = ordem[(ordem.indexOf(statusAtual) + 1) % ordem.length];
+        await api('PUT', `/tarefas/${id}`, { status: proximo });
+        showToast('🔄 Tarefa movida!');
+        carregarTarefas();
+    }
+
+    // ── Render ─────────────────────────────────────────────
+    function renderizarKanban(tarefas) {
+        const cols = { a_fazer: [], em_progresso: [], concluido: [] };
+        tarefas.forEach(t => cols[t.status]?.push(t));
+
+        ['a_fazer', 'em_progresso', 'concluido'].forEach(s => {
+            document.getElementById(`cnt-${s}`).textContent = cols[s].length;
+            const el = document.getElementById(`col-${s}`);
+            el.innerHTML = cols[s].length === 0
+                ? emptyCol()
+                : cols[s].map(cardHTML).join('');
+        });
+    }
+
+    function cardHTML(t) {
+        const prioLabel = { alta: '🔴 Alta', media: '🟡 Média', baixa: '🟢 Baixa' };
+        const desc = t.descricao
+            ? `<div class="task-desc">${esc(t.descricao)}</div>`
+            : '';
+        return `
+        <div class="task-card ${t.prioridade}" id="card-${t.id}">
+            <div class="task-title">${esc(t.titulo)}</div>
+            ${desc}
+            <div class="task-footer">
+                <span class="prio-badge prio-${t.prioridade}">${prioLabel[t.prioridade]}</span>
+                <div class="task-actions">
+                    <button class="btn btn-sm btn-move" onclick="mover(${t.id},'${t.status}')">→ Mover</button>
+                    <button class="btn btn-sm btn-danger" onclick="deletar(${t.id})">🗑</button>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    function emptyCol() {
+        return `<div class="empty-col"><span>🗂</span><span>Nenhuma tarefa aqui ainda</span></div>`;
+    }
+
+    // ── Filtros ────────────────────────────────────────────
+    function filtrar(tarefas) {
+        const { tipo, valor } = filtroAtivo;
+        if (tipo === 'prio' && valor !== 'todos')
+            return tarefas.filter(t => t.prioridade === valor);
+        if (tipo === 'status')
+            return tarefas.filter(t => t.status === valor);
+        return tarefas;
+    }
+
+    function setFiltro(valor) {
+        filtroAtivo = { tipo: 'prio', valor };
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        document.getElementById(`chip-${valor}`).classList.add('active');
+        renderizarKanban(filtrar(todasTarefas));
+    }
+
+    function setFiltroStatus(valor) {
+        filtroAtivo = { tipo: 'status', valor };
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        document.getElementById(`chip-${valor}`).classList.add('active');
+        renderizarKanban(filtrar(todasTarefas));
+    }
+
+    // ── Utils ──────────────────────────────────────────────
+    function esc(str) {
+        const d = document.createElement('div');
+        d.textContent = str; return d.innerHTML;
+    }
+
+    function showToast(msg, error = false) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.className = error ? 'error' : '';
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3200);
+    }
+
+    function animateNum(id, target) {
+        const el = document.getElementById(id);
+        const start = parseInt(el.textContent) || 0;
+        const diff = target - start;
+        const steps = 20;
+        let i = 0;
+        const timer = setInterval(() => {
+            i++;
+            el.textContent = Math.round(start + diff * (i / steps));
+            if (i >= steps) clearInterval(timer);
+        }, 18);
+    }
+
+    // Enter key cria tarefa
+    document.getElementById('input-titulo')
+        .addEventListener('keydown', e => { if (e.key === 'Enter') criarTarefa(); });
+
+    // Init
+    carregarTarefas();
+</script>
+</body>
+</html>
