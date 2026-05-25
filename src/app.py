@@ -37,3 +37,5 @@ if __name__ == '__main__':
     inicializar_banco()
     print("TaskFlow v1.1.0 rodando em http://localhost:5000")
     app.run(debug=True, host='0.0.0.0', port=5000)
+
+ 
