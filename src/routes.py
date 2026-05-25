@@ -110,3 +110,5 @@ def estatisticas():
     return jsonify(resumo), 200
 
 
+ 
+
