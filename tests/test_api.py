@@ -110,3 +110,5 @@ def test_filtro_por_status(client):
     data = resp.get_json()
     assert data['total'] == 1
     assert data['tarefas'][0]['status'] == 'a_fazer'
+
+ 
